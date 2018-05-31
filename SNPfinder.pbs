@@ -1,0 +1,77 @@
+#!/bin/bash
+#PBS -l mem=4GB
+#PBS -l procs=2
+#PBS -l walltime=04:00:00
+#PBS -N SNPmapper
+#PBS -M mrp420@nyu.edu
+#PBS -m abe
+#PBS -e localhost:/scratch/mrp420/reports/${PBS_JOBNAME}.e${PBS_JOBID}
+#PBS -o localhost:/scratch/mrp420/reports/${PBS_JOBNAME}.o${PBS_JOBID}
+
+#SNP FINDER
+#Use this script to map files then produce a sorted file with an separate index file for a
+#region of interest
+#Can then use outputs in IGV to look for mismatches. For this later analysis you will need
+#to use the load the file into IGV (ensure you also have the indexed file in the same 
+#directory). Once loaded in you need to zoom in on your gene of interest and change 
+#settings to higlight mismatches(right-click). You will look for where you get sweeps 
+#(changes that occur in all of your reads). You can then turn on the translation setting 
+#to see what codons have changed to assess if it is synonymous.  
+
+
+#BEFORE YOU RUN CHANGE THE SOURCE FOR THE BOWTIE INDEX FILE TO WHEREVER YOU HAVE IT 
+#STORED. YOU NEED TO DO THIS ON TWO LINES
+
+#How to run
+#qsub -v arg1='FASTQFILE.fastq',arg2='00START00',arg3='99END99',arg4='/path/and/output/file/name SNPfinder.pbs
+
+#Load up the modules and variable
+module load bowtie/intel/1.0.1
+module load samtools/intel/1.2 
+
+#Fastq file (cat your files first if you want to look at multiple files)
+TAG1=$arg1
+#Start location
+TAG2=$arg2
+#End location
+TAG3=$arg3
+#Outputname
+TAG4=$arg4
+
+#Bowtie to map reads strictly. We want what hasn't mapped.
+#CHANGE BOWTIE INDEX
+bowtie -q -5 1 -v 0 -m 1 -p 8 --un ${TAG1}_unmapped.fastq --seed=123 -S /home/mrp420/yeast/genomes/SK1_MvO_V1/sk1_MvO_V1 ${TAG1} strictlymapped.sam
+
+#Re-map everything that didn't map the first time round. But do it under relaxed settings
+#CHANGE BOWTIE INDEX
+bowtie -q -5 1 -v 3 -p 8 --seed=123 -S /home/mrp420/yeast/genomes/SK1_MvO_V1/sk1_MvO_V1 ${TAG1}_unmapped.fastq ${TAG1}_looselymapped.sam
+
+#Convert to BAM, index, sort then extract region of interest. Have to re index and sort afterwards. 
+samtools view -Sb ${TAG1}_looselymapped.sam > ${TAG1}_looselymapped.bam
+
+samtools sort -o ${TAG1}_sorted.bam -O 'bam' -T 'temp' ${TAG1}_looselymapped.bam
+
+samtools index ${TAG1}_sorted.bam
+
+samtools view ${TAG1}_sorted.bam -h chr12:${TAG2}-${TAG3} > ${TAG1}_ycs4-2sorted.bam
+
+samtools sort -o ${TAG4} -O 'bam' -T 'temp' ${TAG1}_ycs4-2sorted.bam
+
+samtools index ${TAG4}
+
+#Remove uninteresting files
+rm ${TAG1}_sorted.bam
+rm ${TAG1}_looselymapped.bam
+rm ${TAG1}_ycs4-2sorted.bam
+rm ${TAG1}_sorted.bam.bai
+
+
+
+
+
+
+
+
+
+
+
