@@ -14,7 +14,7 @@
 #                                INSTRUCTIONS                                  #
 #------------------------------------------------------------------------------#
 
-# Adapted from Matts "SNPfinder.pbs".
+# Adapted from Matts "SNPfinder.pbs" by Luis Silva.
 # Use this script to map files then produce a sorted file with a separate index
 # file for a region of interest.
 # Can then use outputs in IGV to look for mismatches. For this later analysis
